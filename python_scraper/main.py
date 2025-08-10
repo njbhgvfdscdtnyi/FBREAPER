@@ -34,11 +34,27 @@ async def handle_scrape_command(command, scraper, nlp, producer):
         enriched_posts = []
         for post in posts:
             nlp_data = await nlp.process_post(post)
-            enriched_posts.append({**post, **nlp_data})
+            enriched_post = {**post, **nlp_data}
+            
+            # Format post data for Java backend
+            formatted_post = {
+                "postId": f"post_{len(enriched_posts)}",
+                "content": enriched_post.get("content", ""),
+                "author": enriched_post.get("author", ""),
+                "timestamp": enriched_post.get("timestamp", ""),
+                "language": enriched_post.get("language", "en"),
+                "sentiment": enriched_post.get("sentiment", "neutral"),
+                "postType": "post",
+                "createdTime": enriched_post.get("timestamp", ""),
+                "hashtags": enriched_post.get("hashtags", [])
+            }
+            
+            enriched_posts.append(formatted_post)
+            
+        # Send each post to Kafka
         for enriched_post in enriched_posts:
             producer.send_message(KAFKA_SCRAPE_TOPIC, enriched_post)
-            for enriched_post in enriched_posts:
-                producer.send_message(KAFKA_SCRAPE_TOPIC, enriched_post)
+            
         logging.info(f"Scraped and sent {len(enriched_posts)} posts for keyword '{keyword}'")
     elif command['action'] == 'start':
         # Custom scraping logic for full crawl or default action
