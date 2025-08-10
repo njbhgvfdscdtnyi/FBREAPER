@@ -21,33 +21,21 @@ public class LinkAnalysisController {
 
     @GetMapping("/graph")
     public ResponseEntity<Map<String, Object>> getNetworkGraph(@RequestParam(required = false) String keyword) {
-        // Mock network graph data
+        // Get real network data from Neo4j
         Map<String, Object> graphData = new HashMap<>();
         
-        // Mock nodes
-        Map<String, Object>[] nodes = new Map[5];
-        for (int i = 0; i < 5; i++) {
-            Map<String, Object> node = new HashMap<>();
-            node.put("id", String.valueOf(i + 1));
-            node.put("label", "Node " + (i + 1));
-            node.put("type", i == 0 ? "group" : "user");
-            node.put("connections", (i + 1) * 10);
-            nodes[i] = node;
+        try {
+            // Use LinkAnalysisService to get real data from Neo4j
+            Object nodes = linkAnalysisService.getNetworkNodes(keyword);
+            Object links = linkAnalysisService.getNetworkLinks(keyword);
+            
+            graphData.put("nodes", nodes != null ? nodes : new Object[0]);
+            graphData.put("links", links != null ? links : new Object[0]);
+        } catch (Exception e) {
+            // Return empty data if service fails
+            graphData.put("nodes", new Object[0]);
+            graphData.put("links", new Object[0]);
         }
-        
-        // Mock links
-        Map<String, Object>[] links = new Map[4];
-        for (int i = 0; i < 4; i++) {
-            Map<String, Object> link = new HashMap<>();
-            link.put("source", String.valueOf(i + 1));
-            link.put("target", String.valueOf(i + 2));
-            link.put("strength", 0.5 + (i * 0.1));
-            link.put("type", "comment");
-            links[i] = link;
-        }
-        
-        graphData.put("nodes", nodes);
-        graphData.put("links", links);
         
         return ResponseEntity.ok(graphData);
     }

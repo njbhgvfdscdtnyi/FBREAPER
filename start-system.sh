@@ -211,7 +211,6 @@ main() {
     echo ""
     echo "📊 Services Status:"
     echo "  • Neo4j Database: http://localhost:7474"
-    echo "  • Kafka UI: http://localhost:8081"
     echo "  • Java Backend: http://localhost:8080"
     echo "  • React Frontend: http://localhost:3000"
     echo ""

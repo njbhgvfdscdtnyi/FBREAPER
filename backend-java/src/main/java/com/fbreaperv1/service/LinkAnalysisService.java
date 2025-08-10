@@ -33,4 +33,18 @@ public class LinkAnalysisService {
             ? ((com.fbreaperv1.repository.CustomQueryRepositoryImpl) customQueryRepository).detectCommunities()
             : null;
     }
+
+    public Object getNetworkNodes(String keyword) {
+        // Get network nodes from Neo4j
+        return customQueryRepository instanceof com.fbreaperv1.repository.CustomQueryRepositoryImpl
+            ? ((com.fbreaperv1.repository.CustomQueryRepositoryImpl) customQueryRepository).getNetworkNodes(keyword)
+            : new Object[0];
+    }
+
+    public Object getNetworkLinks(String keyword) {
+        // Get network links from Neo4j
+        return customQueryRepository instanceof com.fbreaperv1.repository.CustomQueryRepositoryImpl
+            ? ((com.fbreaperv1.repository.CustomQueryRepositoryImpl) customQueryRepository).getNetworkLinks(keyword)
+            : new Object[0];
+    }
 }
