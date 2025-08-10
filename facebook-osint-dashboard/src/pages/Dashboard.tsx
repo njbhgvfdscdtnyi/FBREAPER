@@ -4,6 +4,7 @@ import ScraperStatus from '../components/Status/ScraperStatus';
 import DataFeed from '../components/DataViewer/DataFeed';
 import NetworkGraph from '../components/Network/NetworkGraph';
 import { ScrapedPost, ScraperStatus as ScraperStatusType, NetworkNode, NetworkLink, DashboardStats } from '../types';
+import apiService from '../services/api';
 
 const Dashboard: React.FC = () => {
   const [currentView, setCurrentView] = useState<'search' | 'status' | 'data' | 'network'>('search');
@@ -119,15 +120,31 @@ const Dashboard: React.FC = () => {
   ];
 
   useEffect(() => {
-    // Simulate real-time data updates
-    const interval = setInterval(() => {
-      setStats(prev => ({
-        ...prev,
-        totalPosts: prev.totalPosts + Math.floor(Math.random() * 3),
-        totalComments: prev.totalComments + Math.floor(Math.random() * 10),
-        totalReactions: prev.totalReactions + Math.floor(Math.random() * 50),
-      }));
-    }, 5000);
+    // Load initial dashboard stats
+    const loadDashboardStats = async () => {
+      try {
+        const response = await apiService.getDashboardStats();
+        if (response.success && response.data) {
+          setStats(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to load dashboard stats:', error);
+      }
+    };
+
+    loadDashboardStats();
+
+    // Real-time data updates
+    const interval = setInterval(async () => {
+      try {
+        const response = await apiService.getDashboardStats();
+        if (response.success && response.data) {
+          setStats(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to update dashboard stats:', error);
+      }
+    }, 10000);
 
     return () => clearInterval(interval);
   }, []);
@@ -136,11 +153,26 @@ const Dashboard: React.FC = () => {
     setLoading(true);
     setCurrentView('data');
     
-    // Simulate API call
-    setTimeout(() => {
-      setPosts(mockPosts);
+    try {
+      // Trigger scraper for keyword
+      if (type === 'keyword') {
+        await apiService.scrapeByKeyword(query);
+      }
+      
+      // Get posts by keyword
+      const response = await apiService.getPostsByKeyword(query);
+      if (response.success && response.data) {
+        setPosts(response.data.content || response.data);
+      } else {
+        console.error('Failed to fetch posts:', response.message);
+        setPosts([]);
+      }
+    } catch (error) {
+      console.error('Search failed:', error);
+      setPosts([]);
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
   const renderContent = () => {
@@ -154,7 +186,17 @@ const Dashboard: React.FC = () => {
       case 'status':
         return (
           <div className="p-6">
-            <ScraperStatus status={mockScraperStatus} />
+            <ScraperStatus status={mockScraperStatus} onRefresh={async () => {
+              try {
+                const response = await apiService.getScraperStatus();
+                if (response.success && response.data) {
+                  // Update status with real data
+                  console.log('Scraper status updated:', response.data);
+                }
+              } catch (error) {
+                console.error('Failed to refresh scraper status:', error);
+              }
+            }} />
           </div>
         );
       case 'data':
@@ -170,7 +212,21 @@ const Dashboard: React.FC = () => {
       case 'network':
         return (
           <div className="p-6">
-            <NetworkGraph nodes={mockNetworkNodes} links={mockNetworkLinks} />
+            <NetworkGraph 
+              nodes={mockNetworkNodes} 
+              links={mockNetworkLinks} 
+              onLoadNetwork={async (keyword?: string) => {
+                try {
+                  const response = await apiService.getNetworkGraph(keyword);
+                  if (response.success && response.data) {
+                    // Update network data with real data
+                    console.log('Network data loaded:', response.data);
+                  }
+                } catch (error) {
+                  console.error('Failed to load network data:', error);
+                }
+              }}
+            />
           </div>
         );
       default:

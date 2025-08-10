@@ -66,17 +66,39 @@ public class DataService {
         try {
             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
             com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(message);
-            if (node.has("content") && node.has("author")) {
+            
+            // Check if it's a post (has postId and content)
+            if (node.has("postId") && node.has("content")) {
+                Post post = new Post();
+                post.setPostId(node.get("postId").asText());
+                post.setContent(node.get("content").asText());
+                post.setAuthor(node.get("author").asText());
+                post.setTimestamp(node.get("timestamp").asText());
+                post.setLanguage(node.get("language").asText());
+                post.setSentiment(node.get("sentiment").asText());
+                post.setPostType(node.get("postType").asText());
+                post.setCreatedTime(node.get("createdTime").asText());
+                
+                // Handle hashtags array
+                if (node.has("hashtags") && node.get("hashtags").isArray()) {
+                    java.util.List<String> hashtags = new java.util.ArrayList<>();
+                    for (com.fasterxml.jackson.databind.JsonNode hashtag : node.get("hashtags")) {
+                        hashtags.add(hashtag.asText());
+                    }
+                    post.setHashtags(hashtags);
+                }
+                
+                savePost(post);
+                System.out.println("Saved post: " + post.getPostId());
+            } else if (node.has("content") && node.has("author")) {
                 // Assume it's a comment
                 Comment comment = mapper.treeToValue(node, Comment.class);
                 saveComment(comment);
-            } else if (node.has("title") && node.has("content")) {
-                // Assume it's a post
-                Post post = mapper.treeToValue(node, Post.class);
-                savePost(post);
+                System.out.println("Saved comment: " + comment.getId());
             }
         } catch (Exception e) {
             System.err.println("Failed to process incoming data: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }

@@ -7,9 +7,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/data")
+@CrossOrigin(origins = "http://localhost:3000")
 public class DataController {
     private final KafkaProducerService kafkaProducerService;
     private final com.fbreaperv1.service.DataService dataService;
@@ -22,13 +24,68 @@ public class DataController {
     }
 
     @GetMapping("/posts")
-    public ResponseEntity<?> getAllPosts() {
-        return ResponseEntity.ok(dataService.getAllPosts().stream().map(entityMapper::toPostDTO).toList());
+    public ResponseEntity<?> getAllPosts(@RequestParam(defaultValue = "0") int page, 
+                                        @RequestParam(defaultValue = "20") int size) {
+        var posts = dataService.getAllPosts();
+        // Simple pagination
+        int start = page * size;
+        int end = Math.min(start + size, posts.size());
+        var paginatedPosts = posts.subList(start, end);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", paginatedPosts.stream().map(entityMapper::toPostDTO).toList());
+        response.put("totalElements", posts.size());
+        response.put("totalPages", (int) Math.ceil((double) posts.size() / size));
+        response.put("currentPage", page);
+        response.put("size", size);
+        
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/comments")
     public ResponseEntity<?> getAllComments() {
         return ResponseEntity.ok(dataService.getAllComments().stream().map(entityMapper::toCommentDTO).toList());
+    }
+
+    @GetMapping("/posts/search")
+    public ResponseEntity<?> searchPostsByKeyword(@RequestParam String keyword,
+                                                 @RequestParam(defaultValue = "0") int page,
+                                                 @RequestParam(defaultValue = "20") int size) {
+        var posts = dataService.searchPostsByKeyword(keyword);
+        // Simple pagination
+        int start = page * size;
+        int end = Math.min(start + size, posts.size());
+        var paginatedPosts = posts.subList(start, end);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", paginatedPosts.stream().map(entityMapper::toPostDTO).toList());
+        response.put("totalElements", posts.size());
+        response.put("totalPages", (int) Math.ceil((double) posts.size() / size));
+        response.put("currentPage", page);
+        response.put("size", size);
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/posts/{postId}/comments")
+    public ResponseEntity<?> getCommentsByPostId(@PathVariable String postId,
+                                                @RequestParam(defaultValue = "0") int page,
+                                                @RequestParam(defaultValue = "20") int size) {
+        // For now, return all comments since we don't have post-specific filtering
+        var comments = dataService.getAllComments();
+        // Simple pagination
+        int start = page * size;
+        int end = Math.min(start + size, comments.size());
+        var paginatedComments = comments.subList(start, end);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", paginatedComments.stream().map(entityMapper::toCommentDTO).toList());
+        response.put("totalElements", comments.size());
+        response.put("totalPages", (int) Math.ceil((double) comments.size() / size));
+        response.put("currentPage", page);
+        response.put("size", size);
+        
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/stats")
@@ -50,12 +107,19 @@ public class DataController {
             .filter(java.util.Objects::nonNull)
             .max(String::compareTo)
             .orElse(null);
-        return ResponseEntity.ok(Map.of(
-            "posts", postCount,
-            "comments", commentCount,
-            "latestPostTime", latestPostTime,
-            "latestCommentTime", latestCommentTime
-        ));
+        
+        // Calculate total reactions (mock data for now)
+        int totalReactions = postCount * 15 + commentCount * 3; // Mock calculation
+        
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalPosts", postCount);
+        stats.put("totalComments", commentCount);
+        stats.put("totalReactions", totalReactions);
+        stats.put("activeScrapers", 1); // Mock data
+        stats.put("errorsToday", 0); // Mock data
+        stats.put("dataCollectedToday", postCount + commentCount); // Mock data
+        
+        return ResponseEntity.ok(stats);
     }
 
 
