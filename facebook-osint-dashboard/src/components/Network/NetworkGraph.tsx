@@ -116,37 +116,35 @@ const NetworkGraph: React.FC<NetworkGraphProps> = ({ nodes, links, loading = fal
       {/* Network Visualization */}
       <div className="p-4">
         <div className="relative h-96 bg-dark-surface rounded-lg border border-dark-border overflow-hidden">
-          {/* Placeholder for actual network visualization */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center">
-              <Network className="h-16 w-16 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400 mb-2">Network Visualization</p>
-              <p className="text-sm text-gray-500">
-                {filteredNodes.length} nodes, {filteredLinks.length} connections
-              </p>
+          {filteredNodes.length === 0 ? (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center">
+                <Network className="h-16 w-16 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-400 mb-2">No network data available</p>
+                <p className="text-sm text-gray-500">Start scraping to see network connections</p>
+              </div>
             </div>
-          </div>
-
-          {/* Mock network nodes for demonstration */}
-          <div className="absolute inset-0">
-            {filteredNodes.slice(0, 10).map((node, index) => (
-              <div
-                key={node.id}
-                className={`absolute w-4 h-4 rounded-full cursor-pointer transition-all ${
-                  selectedNode === node.id
-                    ? 'bg-accent-blue ring-2 ring-accent-blue/50'
-                    : getNodeColor(node.type)
-                }`}
-                style={{
-                  left: `${20 + (index % 5) * 15}%`,
-                  top: `${20 + Math.floor(index / 5) * 20}%`,
-                  transform: `scale(${zoom})`,
-                }}
-                onClick={() => setSelectedNode(selectedNode === node.id ? null : node.id)}
-                title={`${node.label} (${node.connections} connections)`}
-              />
-            ))}
-          </div>
+          ) : (
+            <div className="absolute inset-0">
+              {filteredNodes.map((node, index) => (
+                <div
+                  key={node.id}
+                  className={`absolute w-4 h-4 rounded-full cursor-pointer transition-all ${
+                    selectedNode === node.id
+                      ? 'bg-accent-blue ring-2 ring-accent-blue/50'
+                      : getNodeColor(node.type)
+                  }`}
+                  style={{
+                    left: `${20 + (index % 5) * 15}%`,
+                    top: `${20 + Math.floor(index / 5) * 20}%`,
+                    transform: `scale(${zoom})`,
+                  }}
+                  onClick={() => setSelectedNode(selectedNode === node.id ? null : node.id)}
+                  title={`${node.label} (${node.connections} connections)`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

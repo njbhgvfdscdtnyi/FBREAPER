@@ -19,130 +19,54 @@ const Dashboard: React.FC = () => {
     dataCollectedToday: 0,
   });
 
-  // Mock data for demonstration
-  const mockScraperStatus: ScraperStatusType = {
-    isActive: true,
-    currentTarget: 'protest.group.2024',
-    progress: 67,
-    totalItems: 1500,
-    processedItems: 1005,
-    errors: [
-      {
-        id: '1',
-        message: 'Rate limit exceeded for target group',
-        timestamp: '2024-01-15T10:30:00Z',
-        target: 'protest.group.2024',
-        type: 'rate_limit',
-      },
-      {
-        id: '2',
-        message: 'Network timeout while fetching comments',
-        timestamp: '2024-01-15T10:25:00Z',
-        target: 'protest.group.2024',
-        type: 'network',
-      },
-    ],
-    startTime: '2024-01-15T08:00:00Z',
-    estimatedCompletion: '2h 15m',
-  };
-
-  const mockNetworkNodes: NetworkNode[] = [
-    { id: '1', label: 'John Doe', type: 'user', connections: 45, avatar: 'https://via.placeholder.com/32x32/3b82f6/ffffff?text=J' },
-    { id: '2', label: 'Protest Group 2024', type: 'group', connections: 1200 },
-    { id: '3', label: 'Jane Smith', type: 'user', connections: 23, avatar: 'https://via.placeholder.com/32x32/10b981/ffffff?text=J' },
-    { id: '4', label: 'News Page', type: 'page', connections: 8900 },
-    { id: '5', label: 'Post #1234', type: 'post', connections: 156 },
-  ];
-
-  const mockNetworkLinks: NetworkLink[] = [
-    { source: '1', target: '2', strength: 0.8, type: 'comment' },
-    { source: '3', target: '2', strength: 0.6, type: 'reaction' },
-    { source: '4', target: '2', strength: 0.9, type: 'share' },
-    { source: '1', target: '5', strength: 0.7, type: 'comment' },
-  ];
-
-  const mockPosts: ScrapedPost[] = [
-    {
-      id: '1',
-      content: 'Just attended the peaceful protest downtown. The energy was incredible! #Protest2024 #PeacefulDemonstration',
-      author: {
-        name: 'John Doe',
-        username: 'john.doe',
-        avatar: 'https://via.placeholder.com/40x40/3b82f6/ffffff?text=J',
-        profileUrl: 'https://facebook.com/john.doe',
-      },
-      timestamp: '2024-01-15T10:30:00Z',
-      reactions: { like: 45, love: 12, haha: 3, wow: 2, sad: 1, angry: 0 },
-      comments: [
-        {
-          id: 'c1',
-          content: 'Great photos! Wish I could have been there.',
-          author: { name: 'Jane Smith', username: 'jane.smith', avatar: 'https://via.placeholder.com/32x32/10b981/ffffff?text=J' },
-          timestamp: '2024-01-15T10:35:00Z',
-          reactions: 8,
-        },
-        {
-          id: 'c2',
-          content: 'Stay safe out there! The movement is growing stronger.',
-          author: { name: 'Mike Johnson', username: 'mike.j', avatar: 'https://via.placeholder.com/32x32/f59e0b/ffffff?text=M' },
-          timestamp: '2024-01-15T10:40:00Z',
-          reactions: 15,
-        },
-      ],
-      shares: 23,
-      url: 'https://facebook.com/post/123',
-      group: 'Protest Group 2024',
-    },
-    {
-      id: '2',
-      content: 'Breaking: Major developments in the ongoing situation. More details to follow. #BreakingNews #Update',
-      author: {
-        name: 'News Page',
-        username: 'news.page',
-        avatar: 'https://via.placeholder.com/40x40/ef4444/ffffff?text=N',
-        profileUrl: 'https://facebook.com/news.page',
-      },
-      timestamp: '2024-01-15T09:15:00Z',
-      reactions: { like: 234, love: 89, haha: 12, wow: 45, sad: 23, angry: 67 },
-      comments: [
-        {
-          id: 'c3',
-          content: 'This is getting out of hand. We need leadership now.',
-          author: { name: 'Sarah Wilson', username: 'sarah.w', avatar: 'https://via.placeholder.com/32x32/8b5cf6/ffffff?text=S' },
-          timestamp: '2024-01-15T09:20:00Z',
-          reactions: 34,
-        },
-      ],
-      shares: 156,
-      url: 'https://facebook.com/post/456',
-      page: 'News Page',
-    },
-  ];
+  const [scraperStatus, setScraperStatus] = useState<ScraperStatusType | null>(null);
+  const [networkData, setNetworkData] = useState<{ nodes: NetworkNode[], links: NetworkLink[] }>({ nodes: [], links: [] });
 
   useEffect(() => {
-    // Load initial dashboard stats
-    const loadDashboardStats = async () => {
+    // Load initial dashboard stats and data
+    const loadInitialData = async () => {
       try {
-        const response = await apiService.getDashboardStats();
-        if (response.success && response.data) {
-          setStats(response.data);
+        // Load dashboard stats
+        const statsResponse = await apiService.getDashboardStats();
+        if (statsResponse.success && statsResponse.data) {
+          setStats(statsResponse.data);
+        }
+
+        // Load scraper status
+        const statusResponse = await apiService.getScraperStatus();
+        if (statusResponse.success && statusResponse.data) {
+          setScraperStatus(statusResponse.data);
+        }
+
+        // Load network data
+        const networkResponse = await apiService.getNetworkGraph();
+        if (networkResponse.success && networkResponse.data) {
+          setNetworkData({
+            nodes: networkResponse.data.nodes || [],
+            links: networkResponse.data.links || []
+          });
         }
       } catch (error) {
-        console.error('Failed to load dashboard stats:', error);
+        console.error('Failed to load initial data:', error);
       }
     };
 
-    loadDashboardStats();
+    loadInitialData();
 
     // Real-time data updates
     const interval = setInterval(async () => {
       try {
-        const response = await apiService.getDashboardStats();
-        if (response.success && response.data) {
-          setStats(response.data);
+        const statsResponse = await apiService.getDashboardStats();
+        if (statsResponse.success && statsResponse.data) {
+          setStats(statsResponse.data);
+        }
+
+        const statusResponse = await apiService.getScraperStatus();
+        if (statusResponse.success && statusResponse.data) {
+          setScraperStatus(statusResponse.data);
         }
       } catch (error) {
-        console.error('Failed to update dashboard stats:', error);
+        console.error('Failed to update data:', error);
       }
     }, 10000);
 
@@ -186,12 +110,11 @@ const Dashboard: React.FC = () => {
       case 'status':
         return (
           <div className="p-6">
-            <ScraperStatus status={mockScraperStatus} onRefresh={async () => {
+            <ScraperStatus status={scraperStatus} onRefresh={async () => {
               try {
                 const response = await apiService.getScraperStatus();
                 if (response.success && response.data) {
-                  // Update status with real data
-                  console.log('Scraper status updated:', response.data);
+                  setScraperStatus(response.data);
                 }
               } catch (error) {
                 console.error('Failed to refresh scraper status:', error);
@@ -213,14 +136,16 @@ const Dashboard: React.FC = () => {
         return (
           <div className="p-6">
             <NetworkGraph 
-              nodes={mockNetworkNodes} 
-              links={mockNetworkLinks} 
+              nodes={networkData.nodes} 
+              links={networkData.links} 
               onLoadNetwork={async (keyword?: string) => {
                 try {
                   const response = await apiService.getNetworkGraph(keyword);
                   if (response.success && response.data) {
-                    // Update network data with real data
-                    console.log('Network data loaded:', response.data);
+                    setNetworkData({
+                      nodes: response.data.nodes || [],
+                      links: response.data.links || []
+                    });
                   }
                 } catch (error) {
                   console.error('Failed to load network data:', error);
